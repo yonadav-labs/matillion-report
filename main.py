@@ -4,6 +4,7 @@ import requests
 import pandas as pd
 import numpy as np
 from simple_salesforce import Salesforce
+from openpyxl import load_workbook
 
 from config import *
 from utils import *
@@ -134,10 +135,13 @@ def process_opp_tab():
 
 
 def process_campaign_tab(df_lead, df_opp):
-    df_lead_ = df_lead[['Seller Company Name', 'GTM Campaign Source', 'Campaign Name', 'CRM System Campaign ID', 'Campaign Create Date']]
-    df_opp_ = df_opp[['Seller Company Name', 'GTM Campaign Source', 'Campaign Name', 'CRM System Campaign ID', 'Campaign Create Date']]
+    columns = ['Seller Company Name', 'GTM Campaign Source', 'Campaign Name', 'CRM System Campaign ID', 'Campaign Create Date']
+    df_lead_ = df_lead[columns]
+    df_opp_ = df_opp[columns]
     df_campaign = pd.concat([df_lead_, df_opp_])
     df_campaign.drop_duplicates(subset=['CRM System Campaign ID'], inplace=True)
+
+    # insert new columns
     df_campaign['Campaign Region'] = ''
     df_campaign['Campaign Sub-region'] = ''
     df_campaign['Consulting Partner Name'] = ''
@@ -149,20 +153,31 @@ def process_campaign_tab(df_lead, df_opp):
 
 def save_report(df_lead, df_opp, df_campaign):
     file_name = datetime.now().strftime('data/SellerGTMReport_Matillion_%d%m%Y.xlsx')
-    writer = pd.ExcelWriter(file_name, engine='xlsxwriter')
-    df_lead.to_excel(writer, sheet_name='Lead Level', index=False)
-    df_opp.to_excel(writer, sheet_name='Opportunity Level', index=False)
-    df_campaign.to_excel(writer, sheet_name='Campaign Level', index=False)
-    writer.save()
+    wb = load_workbook('report-template.xlsx')
+
+    sheet_map = {
+        'Lead Level': df_lead,
+        'Opportunity Level': df_opp,
+        'Campaign Level': df_campaign
+    }    
+
+    for sheet_name, frame in sheet_map.items():
+        ws = wb[sheet_name]
+        for index, row in frame.iterrows():
+            ws.append(list(row))
+
+    wb.save(file_name)
 
     return file_name
 
 
 def main():
     # download_reports()
+
     df_lead = process_lead_tab()
     df_opp = process_opp_tab()
     df_campaign = process_campaign_tab(df_lead, df_opp)
+
     report_file_name = save_report(df_lead, df_opp, df_campaign)
 
 
