@@ -30,11 +30,14 @@ def process_lead_tab():
     # handle country
     country_value = {'Country': 'Not reportable'}
     df.fillna(country_value, inplace=True)
+
     # add seller name
     df = df.reindex(columns=['Seller Company Name']+list(df.columns))
-    df.loc[:, 'Seller Company Name'] = 'Matillion'
+    df['Seller Company Name'] = 'Matillion'
+
     # remove duplicates
     df.drop_duplicates(subset=['Campaign ID'], inplace=True)
+
     # handle status
     status_values = {
         'Disqualified': 'Junk',
@@ -65,9 +68,37 @@ def process_opp_tab_1():
 
     df_opp_revenue = df_opp_revenue.merge(df_mark_down, on='Record Unique ID', how='left')
     df_opp_revenue = df_opp_revenue[df_opp_revenue['Contact 18 Character ID'] > 4]
+
+    df_opp_revenue['Stage'] = 'Closed'
+    marketplace_opp_values = {
+        0: 'Not reportable',
+        1: 'Yes'
+    }
+    df_opp_revenue['AWS Marketplace Opportunity?'].replace(marketplace_opp_values, inplace=True)
+
     # remove columns
-    # df.drop(['BI Cloud Data Warehouse', 'Amount (ACV) Currency'], axis=1, inplace=True)
-    df_opp_revenue.to_excel('data/opp.xlsx', sheet_name='Lead Level', index=False)
+    df_opp_revenue.drop(['Contact 18 Character ID', 'Amount (ACV)'], axis=1, inplace=True)
+
+    df_opp_revenue.insert(loc=1, column='Seller Company Name', value='Matillion')
+
+    df_contacts.drop(['Member First Associated Date', 'Contact 18 Character ID'], axis=1, inplace=True)
+
+    df_contacts = df_contacts[df_contacts['Campaign Source'] != 'Other']
+    df_contacts.sort_values(by=['Created Date'], inplace=True)
+    df_contacts.drop_duplicates(subset=['Record Unique ID'], inplace=True)
+    new_column_names = {
+        'Created Date': 'Campaign Create Date',
+        'Campaign Source': 'GTM Campaign Source',
+        'Campaign ID': 'CRM System Campaign ID'
+    }
+    df_contacts.rename(new_column_names, axis=1, inplace=True)
+
+    df_opp_revenue = df_opp_revenue.merge(df_contacts, on='Record Unique ID', how='left')
+    df_opp_revenue.dropna(inplace=True)
+
+    # change column name
+    df_opp_revenue.rename({'First Usage Date': 'Win Date'}, axis=1, inplace=True)
+    df_opp_revenue.to_excel('data/opp-4.xlsx', sheet_name='Lead Level', index=False)
 
 
 def process_opp_tab_3():
