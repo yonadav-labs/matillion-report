@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import requests
 import pandas as pd
 import numpy as np
@@ -145,17 +147,24 @@ def process_campaign_tab(df_lead, df_opp):
     return df_campaign
 
 
+def save_report(df_lead, df_opp, df_campaign):
+    file_name = datetime.now().strftime('data/SellerGTMReport_Matillion_%d%m%Y.xlsx')
+    writer = pd.ExcelWriter(file_name, engine='xlsxwriter')
+    df_lead.to_excel(writer, sheet_name='Lead Level', index=False)
+    df_opp.to_excel(writer, sheet_name='Opportunity Level', index=False)
+    df_campaign.to_excel(writer, sheet_name='Campaign Level', index=False)
+    writer.save()
+
+    return file_name
+
+
 def main():
     # download_reports()
     df_lead = process_lead_tab()
     df_opp = process_opp_tab()
     df_campaign = process_campaign_tab(df_lead, df_opp)
+    report_file_name = save_report(df_lead, df_opp, df_campaign)
 
-    writer = pd.ExcelWriter('data/result.xlsx', engine='xlsxwriter')
-    df_lead.to_excel(writer, sheet_name='Lead Level', index=False)
-    df_opp.to_excel(writer, sheet_name='Opportunity Level', index=False)
-    df_campaign.to_excel(writer, sheet_name='Campaign Level', index=False)
-    writer.save()
 
 if __name__ == '__main__':
     main()
