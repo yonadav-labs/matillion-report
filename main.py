@@ -24,18 +24,18 @@ def download_reports():
 
 
 def process_lead_tab():
-    df = pd.read_csv('data/lead.csv')
-    df = remove_footer(df)
+    df_lead = pd.read_csv('data/lead.csv')
+    df_lead = remove_footer(df_lead)
 
     # handle country
     country_value = {'Country': 'Not reportable'}
-    df.fillna(country_value, inplace=True)
+    df_lead.fillna(country_value, inplace=True)
 
     # add seller name
-    df.insert(loc=0, column='Seller Company Name', value='Matillion')
+    df_lead.insert(loc=0, column='Seller Company Name', value='Matillion')
 
     # remove duplicates
-    df.drop_duplicates(subset=['Campaign ID'], inplace=True)
+    df_lead.drop_duplicates(subset=['Campaign ID'], inplace=True)
 
     # handle status
     status_values = {
@@ -51,12 +51,20 @@ def process_lead_tab():
         'Added to Sequence': 'Valid'
     }
 
-    df['Handoff Status'].replace(status_values, inplace=True)
+    df_lead['Handoff Status'].replace(status_values, inplace=True)
 
-    df.to_excel('data/lead.xlsx', sheet_name='Lead Level', index=False)
+    # change column name
+    new_column_names = {
+        'Created Date': 'Campaign Create Date',
+        'Campaign Source': 'GTM Campaign Source',
+        'Campaign ID': 'CRM System Campaign ID'
+    }
+    df_lead.rename(new_column_names, axis=1, inplace=True)
+
+    return df_lead
 
 
-def process_opp_tab_1():
+def process_opp_tab():
     df_opp_revenue = pd.read_csv('data/opp-revenue.csv')
     df_opp_revenue = remove_footer(df_opp_revenue)
     df_opp_pipeline = pd.read_csv('data/opp-pipeline.csv')
@@ -98,6 +106,7 @@ def process_opp_tab_1():
     df_contacts.rename(new_column_names, axis=1, inplace=True)
 
     df_opp = df_opp.merge(df_contacts, on='Record Unique ID', how='left')
+    df_opp.drop(['Record Unique ID'], axis=1, inplace=True)
     df_opp.dropna(subset=['GTM Campaign Source'], inplace=True)
 
     # change column name
@@ -114,20 +123,39 @@ def process_opp_tab_1():
 
     # reorder columns
     columns = list(df_opp.columns)
-    new_columns = columns[:2] + columns[12:] + columns[2:12]
+    new_columns = columns[:1] + columns[11:] + columns[1:11]
     df_opp = df_opp[new_columns]
-    df_opp.insert(loc=14, column='CPPO', value='')
-    df_opp.insert(loc=15, column='Consulting Partner Name', value='')
+    df_opp.insert(loc=13, column='CPPO', value='')
+    df_opp.insert(loc=14, column='Consulting Partner Name', value='')
 
-    df_opp.to_excel('data/opp-1.xlsx', sheet_name='Opportunity Level', index=False)
+    return df_opp
+
+
+def process_campaign_tab(df_lead, df_opp):
+    df_lead_ = df_lead[['Seller Company Name', 'GTM Campaign Source', 'Campaign Name', 'CRM System Campaign ID', 'Campaign Create Date']]
+    df_opp_ = df_opp[['Seller Company Name', 'GTM Campaign Source', 'Campaign Name', 'CRM System Campaign ID', 'Campaign Create Date']]
+    df_campaign = pd.concat([df_lead_, df_opp_])
+    df_campaign.drop_duplicates(subset=['CRM System Campaign ID'], inplace=True)
+    df_campaign['Campaign Region'] = ''
+    df_campaign['Campaign Sub-region'] = ''
+    df_campaign['Consulting Partner Name'] = ''
+    df_campaign['Investment*'] = 0
+    df_campaign['Investment Geo'] = ''
+
+    return df_campaign
 
 
 def main():
     # download_reports()
-    # process_lead_tab()
-    process_opp_tab_1()
-    # process_opp_tab_3()
+    df_lead = process_lead_tab()
+    df_opp = process_opp_tab()
+    df_campaign = process_campaign_tab(df_lead, df_opp)
 
+    writer = pd.ExcelWriter('data/result.xlsx', engine='xlsxwriter')
+    df_lead.to_excel(writer, sheet_name='Lead Level', index=False)
+    df_opp.to_excel(writer, sheet_name='Opportunity Level', index=False)
+    df_campaign.to_excel(writer, sheet_name='Campaign Level', index=False)
+    writer.save()
 
 if __name__ == '__main__':
     main()
