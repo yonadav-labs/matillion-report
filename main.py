@@ -97,6 +97,9 @@ def process_opp_tab():
     df_opp['AWS Marketplace Opportunity?'].replace(marketplace_opp_values, inplace=True)
     df_opp.insert(loc=1, column='Seller Company Name', value='Matillion')
 
+    revenue_value = {'Amount (ACV)': 0}
+    df_opp.fillna(revenue_value, inplace=True)
+
     df_contacts.drop(['Member First Associated Date', 'Contact 18 Character ID'], axis=1, inplace=True)
     df_contacts = df_contacts[df_contacts['Campaign Source'] != 'Other']
     df_contacts.sort_values(by=['Created Date'], inplace=True)
@@ -152,7 +155,7 @@ def process_campaign_tab(df_lead, df_opp):
 
 
 def save_report(df_lead, df_opp, df_campaign):
-    file_name = datetime.now().strftime('data/SellerGTMReport_Matillion_%d%m%Y.xlsx')
+    file_name = datetime.now().strftime('data/SellerGTMReport_Matillion_%m%d%Y.xlsx')
     wb = load_workbook('report-template.xlsx')
 
     sheet_map = {
