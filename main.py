@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 import pandas as pd
@@ -126,6 +126,13 @@ def process_opp_tab():
     }
     df_opp.rename(new_column_names, axis=1, inplace=True)
     df_opp.drop_duplicates(subset=['Opportunity ID'], inplace=True)
+
+    # handle win date
+    df_opp['Convert Date'] = pd.to_datetime(df_opp['Convert Date'])
+    df_opp['Win Date'] = df_opp['Convert Date'] + timedelta(days=1)
+    df_opp['Convert Date'] = df_opp['Convert Date'].dt.strftime('%m/%d/%Y')
+    this_year = datetime.now().year
+    df_opp['Win Date'] = df_opp['Win Date'].dt.strftime(f'%m/%d/{this_year}')
 
     # reorder columns
     columns = list(df_opp.columns)
