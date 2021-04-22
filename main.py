@@ -38,7 +38,7 @@ def process_lead_tab():
     df_lead.insert(loc=0, column='Seller Company Name', value='Matillion')
 
     # remove duplicates
-    df_lead.drop_duplicates(subset=['Campaign ID'], inplace=True)
+    df_lead.drop_duplicates(subset=['Related Record ID'], inplace=True)
 
     # handle status
     status_values = {
