@@ -113,6 +113,7 @@ def process_opp_tab():
     df_opp = df_opp.merge(df_contacts, on='Record Unique ID', how='left')
     df_opp.drop(['Record Unique ID'], axis=1, inplace=True)
     df_opp.dropna(subset=['GTM Campaign Source'], inplace=True)
+    df_opp = df_opp[df_opp['GTM Campaign Source'] != 'Sales']
 
     # change column name
     new_column_names = {
@@ -185,7 +186,7 @@ def save_report(df_lead, df_opp, df_campaign):
 
 
 def main():
-    # download_reports()
+    download_reports()
 
     df_lead = process_lead_tab()
     df_opp = process_opp_tab()
