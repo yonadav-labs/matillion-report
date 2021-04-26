@@ -29,6 +29,7 @@ def download_reports():
 def process_lead_tab():
     df_lead = pd.read_csv('data/lead.csv')
     df_lead = remove_footer(df_lead)
+    df_lead = df_lead[df_lead['Campaign Source'] != 'Sales']
 
     # handle country
     country_value = {'Country': 'Not reportable'}
@@ -47,6 +48,7 @@ def process_lead_tab():
         'SDR Qualified': 'Valid',
         'Sales Rejected': 'Lost',
         'Marketing On-point': 'Valid',
+        'Marked Finished - No Reply': 'Lost',
         'Sales Working': 'Valid',
         'MQL': 'Valid', 'Sales On-Point':
         'Valid', 'SQL': 'Valid',
@@ -97,9 +99,6 @@ def process_opp_tab():
     df_opp['AWS Marketplace Opportunity?'].replace(marketplace_opp_values, inplace=True)
     df_opp.insert(loc=1, column='Seller Company Name', value='Matillion')
 
-    revenue_value = {'Amount (ACV)': 0}
-    df_opp.fillna(revenue_value, inplace=True)
-
     df_contacts.drop(['Member First Associated Date', 'Contact 18 Character ID'], axis=1, inplace=True)
     df_contacts = df_contacts[df_contacts['Campaign Source'] != 'Other']
     df_contacts.sort_values(by=['Created Date'], inplace=True)
@@ -127,12 +126,16 @@ def process_opp_tab():
     df_opp.rename(new_column_names, axis=1, inplace=True)
     df_opp.drop_duplicates(subset=['Opportunity ID'], inplace=True)
 
+    revenue_value = {'Pipeline Revenue': 0}
+    df_opp.fillna(revenue_value, inplace=True)
+
     # handle win date
     df_opp['Convert Date'] = pd.to_datetime(df_opp['Convert Date'])
     df_opp['Win Date'] = df_opp['Convert Date'] + timedelta(days=1)
     df_opp['Convert Date'] = df_opp['Convert Date'].dt.strftime('%m/%d/%Y')
     this_year = datetime.now().year
     df_opp['Win Date'] = df_opp['Win Date'].dt.strftime(f'%m/%d/{this_year}')
+    df_opp.loc[df_opp['YTD Billed Revenue'].isnull(), 'Win Date'] = None
 
     # reorder columns
     columns = list(df_opp.columns)
