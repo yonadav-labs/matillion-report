@@ -26,6 +26,12 @@ def download_reports():
             f.write(response.text)
 
 
+country_map_values = {
+    'Antigua and Deps': 'ANTIGUA AND BARBUDA',
+    'Hong Kong SAR (China)': 'China'
+}
+
+
 def process_lead_tab():
     df_lead = pd.read_csv('data/lead.csv')
     df_lead = remove_footer(df_lead)
@@ -34,6 +40,7 @@ def process_lead_tab():
     # handle country
     country_value = {'Country': 'Not reportable'}
     df_lead.fillna(country_value, inplace=True)
+    df_lead['Country'].replace(country_map_values, inplace=True)
 
     # add seller name
     df_lead.insert(loc=0, column='Seller Company Name', value='Matillion')
@@ -126,6 +133,8 @@ def process_opp_tab():
     }
     df_opp.rename(new_column_names, axis=1, inplace=True)
     df_opp.drop_duplicates(subset=['Opportunity ID'], inplace=True)
+
+    df_opp['Opportunity Country'].replace(country_map_values, inplace=True)
 
     revenue_value = {'Pipeline Revenue': 0}
     df_opp.fillna(revenue_value, inplace=True)
